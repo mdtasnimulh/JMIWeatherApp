@@ -20,4 +20,15 @@ class WeatherRepository @Inject constructor(private val weatherService: WeatherA
         }.flowOn(Dispatchers.IO)
     }
 
+    suspend fun fetchCurrentWeatherData(lat: String, lon: String): Flow<ViewState<WeatherResponse>> {
+        return flow {
+            val comment = weatherService.getCurrentWeatherData(
+                lat = lat,
+                lon = lon
+            )
+            Log.d("chkRepository", "$comment")
+            emit(ViewState.success(comment))
+        }.flowOn(Dispatchers.IO)
+    }
+
 }

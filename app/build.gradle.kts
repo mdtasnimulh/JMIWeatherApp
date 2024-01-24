@@ -89,4 +89,8 @@ dependencies {
     // LiveData
     implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
 
+    // work manage
+    implementation ("androidx.work:work-runtime-ktx:2.9.0")
+    implementation ("androidx.hilt:hilt-work:1.1.0")
+
 }

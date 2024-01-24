@@ -10,6 +10,7 @@ import com.tasnim.chowdhury.jmiweatherapp.domain.model.WeatherModel
 class WeatherListAdapter : RecyclerView.Adapter<WeatherListAdapter.MainViewHolder>() {
 
     private var weatherValue: MutableList<WeatherModel> = mutableListOf()
+    var itemClick:((item:WeatherModel) -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MainViewHolder {
         return MainViewHolder(
@@ -38,6 +39,10 @@ class WeatherListAdapter : RecyclerView.Adapter<WeatherListAdapter.MainViewHolde
             binding.temperature.text = tempStr
 
             setSeparator(adapterPosition, binding.separatorView)
+
+            binding.root.setOnClickListener {
+                itemClick?.invoke(weatherModel)
+            }
         }
     }
 

@@ -22,5 +22,8 @@
         <action
             android:id="@+id/action_weatherDetailsFragment_to_weatherListFragment"
             app:destination="@id/weatherListFragment" />
+        <argument
+            android:name="weather_details"
+            app:argType="com.tasnim.chowdhury.jmiweatherapp.domain.model.WeatherModel" />
     </fragment>
 </navigation>

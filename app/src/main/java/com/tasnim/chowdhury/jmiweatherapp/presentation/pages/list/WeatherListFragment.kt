@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.tasnim.chowdhury.jmiweatherapp.databinding.FragmentWeatherListBinding
@@ -38,13 +39,9 @@ class WeatherListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        initView()
         setupAdapter()
         setupObserver()
-    }
-
-    private fun initView() {
-
+        setupClicks()
     }
 
     private fun setupAdapter() {
@@ -79,7 +76,14 @@ class WeatherListFragment : Fragment() {
                                     feelsLike = response.main.feelsLike,
                                     temp = response.main.temp,
                                     condition = response.weather[0].main,
-                                    cityName = response.name
+                                    cityName = response.name,
+                                    lat = response.coord.lat,
+                                    lon = response.coord.lon,
+                                    humidity = response.main.humidity,
+                                    windSpeed = response.wind.speed,
+                                    maxTemp = response.main.tempMax,
+                                    minTemp = response.main.tempMin,
+                                    icon = response.weather[0].icon
                                 )
                             }
 
@@ -99,4 +103,11 @@ class WeatherListFragment : Fragment() {
         }
     }
 
+    private fun setupClicks() {
+        weatherAdapter.itemClick = { weatherData ->
+            findNavController().navigate(
+                WeatherListFragmentDirections.actionWeatherListFragmentToWeatherDetailsFragment(weatherData)
+            )
+        }
+    }
 }

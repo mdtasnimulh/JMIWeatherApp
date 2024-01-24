@@ -9,6 +9,9 @@ class Constants {
         const val lon = "90.35"
         const val cnt = "50"
         const val unit = "metric"
+        const val NOTIFICATION_CHANNEL_ID = "NOTIFICATION_CHANNEL_ID"
+        const val NOTIFICATION_CHANNEL_NAME = "Weather Notification"
+        const val NOTIFICATION_ID = 13
     }
 
 }
