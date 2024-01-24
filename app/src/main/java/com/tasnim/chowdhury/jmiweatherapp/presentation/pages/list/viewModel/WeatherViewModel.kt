@@ -29,17 +29,17 @@ class WeatherViewModel @Inject constructor(
             ""
         )
     )
-    val currentWeatherState = MutableStateFlow(
+    /*val currentWeatherState = MutableStateFlow(
         CurrentViewState(
             CurrentStatus.LOADING,
             WeatherResponse(),
             ""
         )
-    )
+    )*/
 
     init {
         fetchWeatherList()
-        fetchCurrentWeatherList("","")
+        //fetchCurrentWeatherList("","")
     }
 
     fun fetchWeatherList() {
@@ -56,7 +56,7 @@ class WeatherViewModel @Inject constructor(
         }
     }
 
-    fun fetchCurrentWeatherList(lat: String?, lon: String?) {
+    /*fun fetchCurrentWeatherList(lat: String?, lon: String?) {
         currentWeatherState.value = CurrentViewState.loading()
         viewModelScope.launch {
             if (lat != null) {
@@ -72,6 +72,6 @@ class WeatherViewModel @Inject constructor(
                 }
             }
         }
-    }
+    }*/
 
 }
