@@ -198,13 +198,17 @@ class WeatherListFragment : Fragment() {
                     val location: Location? = task.result
                     Log.d("chkLocationD", "$location +++")
                     if (location != null) {
-                        val geocoder = Geocoder(requireContext(), Locale.getDefault())
-                        val list = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                        Log.d("chkLocationD", "$list ---")
-                        lat = list?.get(0)?.latitude.toString()
-                        lon = list?.get(0)?.longitude.toString()
+                        try {
+                            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+                            val list = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                            Log.d("chkLocationD", "$list ---")
+                            lat = list?.get(0)?.latitude.toString()
+                            lon = list?.get(0)?.longitude.toString()
 
-                        latLonCallback.onLocationReceived(lat, lon)
+                            latLonCallback.onLocationReceived(lat, lon)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             } else {
