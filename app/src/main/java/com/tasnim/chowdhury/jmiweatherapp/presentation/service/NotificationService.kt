@@ -1,65 +1,58 @@
 package com.tasnim.chowdhury.jmiweatherapp.presentation.service
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
-import android.os.Binder
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.location.FusedLocationProviderClient
 import com.tasnim.chowdhury.jmiweatherapp.R
-import com.tasnim.chowdhury.jmiweatherapp.presentation.MainActivity
+import com.tasnim.chowdhury.jmiweatherapp.data.data_source.currentDTO.CurrentDTO
+import com.tasnim.chowdhury.jmiweatherapp.presentation.pages.list.viewModel.WeatherViewModel
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_CHANNEL_ID
-import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_CHANNEL_NAME
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_ID
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 
-class NotificationService : Service() {
+@AndroidEntryPoint
+class NotificationService(private val weatherViewModel: WeatherViewModel) : Service() {
 
-    lateinit var notificationBuilder: NotificationCompat.Builder
-    private lateinit var runnable: Runnable
-    lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            val lat = intent.getStringExtra("lat") ?: ""
+            val lon = intent.getStringExtra("lon") ?: ""
 
-    private var myBinder = MyBinder()
-
-
-    override fun onBind(p0: Intent?): IBinder? {
-        return myBinder
-    }
-
-    inner class MyBinder : Binder() {
-        fun currentService(): NotificationService {
-            return this@NotificationService
+            // Fetch weather data and show notification
+            GlobalScope.launch(Dispatchers.Main) {
+                val result = weatherViewModel.fetchCurrentWeatherData(lat, lon).firstOrNull()
+                result?.data?.let { currentDTO ->
+                    showNotification(lat, lon, currentDTO)
+                }
+            }
         }
+        return START_NOT_STICKY
     }
 
-    fun showNotification() {
-        val intent = Intent(baseContext, MainActivity::class.java)
-        val mainIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createNotificationChannel(notificationManager)
-
-        val image = BitmapFactory.decodeResource(baseContext.resources, R.drawable.clear_sky_day)
-        val notificationBuilder = notificationBuilder
-            .setContentTitle("Weather App")
-            .setContentText("Current Weather")
-            .setLargeIcon(image)
-            .setContentIntent(mainIntent)
-
-        startForeground(NOTIFICATION_ID, notificationBuilder.build())
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
     }
 
-    private fun createNotificationChannel(notificationManager: NotificationManager) {
-        val channel = NotificationChannel(
-            NOTIFICATION_CHANNEL_ID,
-            NOTIFICATION_CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_HIGH
-        )
-        notificationManager.createNotificationChannel(channel)
-    }
+    private fun showNotification(lat: String, lon: String, currentDTO: CurrentDTO) {
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        val notificationContent =
+            "Lat: $lat, Lon: $lon\nCity: ${currentDTO.name}\nTemperature: ${currentDTO.main?.temp}°C"
+
+        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("Weather Details")
+            .setContentText(notificationContent)
+            .setSmallIcon(R.drawable.scater_clouds)
+            .build()
+
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
 }

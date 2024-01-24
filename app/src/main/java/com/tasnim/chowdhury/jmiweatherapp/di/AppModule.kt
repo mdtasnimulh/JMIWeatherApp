@@ -1,12 +1,15 @@
 package com.tasnim.chowdhury.jmiweatherapp.di
 
+import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.tasnim.chowdhury.jmiweatherapp.R
 import com.tasnim.chowdhury.jmiweatherapp.data.data_source.WeatherApi
+import com.tasnim.chowdhury.jmiweatherapp.data.repository.WeatherRepository
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants
 import dagger.Module
 import dagger.Provides
@@ -54,19 +57,25 @@ class AppModule {
     @Provides
     fun provideFusedLocationProviderClient(
         @ApplicationContext app: Context
-    ) = LocationServices.getFusedLocationProviderClient(app)
+    ): FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(app)
 
-    /*@Singleton
+    @Singleton
+    @Provides
+    fun provideNotificationManager(
+        @ApplicationContext context: Context
+    ): NotificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    @Singleton
     @Provides
     fun provideNotificationBuilder(
         @ApplicationContext context: Context,
-    ) : NotificationCompat.Builder {
+    ): NotificationCompat.Builder {
         return NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.clouds)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
-    }*/
-
+    }
 }

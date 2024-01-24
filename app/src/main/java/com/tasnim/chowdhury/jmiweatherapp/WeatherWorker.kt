@@ -1,5 +1,6 @@
 package com.tasnim.chowdhury.jmiweatherapp
 
+import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -9,13 +10,14 @@ import androidx.work.Data
 import androidx.work.WorkerParameters
 import com.tasnim.chowdhury.jmiweatherapp.data.data_source.currentDTO.CurrentDTO
 import com.tasnim.chowdhury.jmiweatherapp.data.repository.WeatherRepository
+import com.tasnim.chowdhury.jmiweatherapp.util.Constants
 import com.tasnim.chowdhury.jmiweatherapp.util.CurrentStatus
 import com.tasnim.chowdhury.jmiweatherapp.util.CurrentViewState
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
-import javax.inject.Inject
+import kotlinx.coroutines.flow.firstOrNull
 
 @HiltWorker
 class WeatherWorker @AssistedInject constructor(
@@ -41,20 +43,34 @@ class WeatherWorker @AssistedInject constructor(
         return Result.success()
     }
 
-    suspend fun fetchCurrentWeatherList(lat: String?, lon: String?) {
-        currentWeatherState.value = CurrentViewState.loading()
-        if (lat != null) {
-            if (lon != null) {
-                repository.fetchCurrentWeatherData(lat, lon)
-                    .catch {
-                        currentWeatherState.value = CurrentViewState.error(it.message.toString())
-                    }
-                    .collect{
-                        currentWeatherState.value = CurrentViewState.success(it.data)
-                        Log.d("chkCurrentData", "${it.data}")
-                    }
+    private suspend fun fetchCurrentWeatherList(lat: String?, lon: String?) {
+        if (lat != null && lon != null) {
+            val result = repository.fetchCurrentWeatherData(lat, lon)
+                .catch {
+                    // Handle errors here
+                }
+                .firstOrNull()
+
+            result?.data?.let { currentDTO ->
+                showNotification(lat, lon, currentDTO)
             }
         }
+    }
+
+    private fun showNotification(lat: String, lon: String, currentDTO: CurrentDTO) {
+        val notificationManager =
+            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notificationContent =
+            "Lat: $lat, Lon: $lon\nCity: ${currentDTO.name}\nTemperature: ${currentDTO.main?.temp}°C"
+
+        val notification = NotificationCompat.Builder(applicationContext, Constants.NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("Weather Details")
+            .setContentText(notificationContent)
+            .setSmallIcon(R.drawable.scater_clouds)
+            .build()
+
+        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
     }
 
 }

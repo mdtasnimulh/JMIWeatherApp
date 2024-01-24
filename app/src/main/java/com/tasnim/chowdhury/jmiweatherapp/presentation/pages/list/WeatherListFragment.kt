@@ -1,7 +1,14 @@
 package com.tasnim.chowdhury.jmiweatherapp.presentation.pages.list
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Context.LOCATION_SERVICE
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
@@ -16,27 +23,44 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.work.Constraints
 import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequest
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.tasnim.chowdhury.jmiweatherapp.R
 import com.tasnim.chowdhury.jmiweatherapp.WeatherWorker
+import com.tasnim.chowdhury.jmiweatherapp.data.data_source.currentDTO.CurrentDTO
 import com.tasnim.chowdhury.jmiweatherapp.databinding.FragmentWeatherListBinding
 import com.tasnim.chowdhury.jmiweatherapp.domain.model.WeatherModel
 import com.tasnim.chowdhury.jmiweatherapp.presentation.adapters.WeatherListAdapter
 import com.tasnim.chowdhury.jmiweatherapp.presentation.pages.list.viewModel.WeatherViewModel
+import com.tasnim.chowdhury.jmiweatherapp.presentation.service.Notification
+import com.tasnim.chowdhury.jmiweatherapp.presentation.service.messageExtra
+import com.tasnim.chowdhury.jmiweatherapp.presentation.service.titleExtra
+import com.tasnim.chowdhury.jmiweatherapp.util.Constants
+import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_ID
 import com.tasnim.chowdhury.jmiweatherapp.util.Status
 import com.tasnim.chowdhury.jmiweatherapp.util.LatLonCallBack
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -68,11 +92,14 @@ class WeatherListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupWorker()
+        //setupWorker()
 
         setupAdapter()
         setupObserver()
         setupClicks()
+
+        createNotificationChannel()
+        scheduleIt()
     }
 
     private fun setupAdapter() {
@@ -142,44 +169,130 @@ class WeatherListFragment : Fragment() {
         }
     }
 
+    //sssssssss
     private fun setupWorker() {
-        //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
-
-        /*data = Data.Builder().putString("lat", lat).putString("lon", lon).build()
-
-        request = OneTimeWorkRequestBuilder<WeatherWorker>()
-            .setInputData(data)
-            .setInitialDelay(5, TimeUnit.SECONDS)
-            .build()
-
-        WorkManager.getInstance(requireContext()).enqueue(request)*/
-        /*val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .setRequiresBatteryNotLow(false)
-            .build()
-
-        periodicWorkRequest = PeriodicWorkRequestBuilder<WeatherWorker>(15, TimeUnit.SECONDS).build()
-
-        WorkManager.getInstance(requireContext()).enqueueUniquePeriodicWork(
-            "weather notification",
-            ExistingPeriodicWorkPolicy.KEEP,
-            periodicWorkRequest
-        )*/
-
         getLocation(object : LatLonCallBack {
             override fun onLocationReceived(latitude: String, longitude: String) {
                 Log.d("chkGainLocation", "$latitude $longitude 1")
                 data = Data.Builder().putString("lat", lat).putString("lon", lon).build()
 
-                request = OneTimeWorkRequestBuilder<WeatherWorker>()
-                    .setInputData(data)
-                    .setInitialDelay(5, TimeUnit.SECONDS)
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiresBatteryNotLow(false)
                     .build()
 
-                WorkManager.getInstance(requireContext()).enqueue(request)
+                val periodicWorkRequest = PeriodicWorkRequestBuilder<WeatherWorker>(1, TimeUnit.MINUTES)
+                    .setInputData(data)
+                    .setConstraints(constraints)
+                    .build()
+
+                WorkManager.getInstance(requireContext()).enqueueUniquePeriodicWork(
+                    "weather_notification",
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    periodicWorkRequest
+                )
             }
         })
     }
+
+    private fun scheduleIt() {
+        getLocation(object : LatLonCallBack {
+            @SuppressLint("ScheduleExactAlarm")
+            override fun onLocationReceived(latitude: String, longitude: String) {
+                // Calculate delay until the next scheduled time
+                val specificTimeInMillis = calculateSpecificTime()
+                val delayMillis = specificTimeInMillis - System.currentTimeMillis()
+
+                if (delayMillis > 0) {
+                    val alarmManager = activity?.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                    val alarmIntent = Intent(activity?.applicationContext, Notification::class.java)
+                    alarmIntent.putExtra("lat", latitude)
+                    alarmIntent.putExtra("lon", longitude)
+
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        activity?.applicationContext,
+                        NOTIFICATION_ID,
+                        alarmIntent,
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+
+                    // Schedule the alarm with the calculated delay
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis() + delayMillis,
+                            pendingIntent
+                        )
+                    } else {
+                        alarmManager.setExact(
+                            AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis() + delayMillis,
+                            pendingIntent
+                        )
+                    }
+                }
+            }
+        })
+    }
+
+    private fun fetchWeatherDataAndShowNotification(lat: String, lon: String) {
+        lifecycleScope.launch {
+            try {
+                // Collect the flow to get the actual data
+                val result = weatherViewModel.fetchCurrentWeatherData(lat, lon).firstOrNull()
+                result?.data?.let { currentDTO ->
+                    showNotification(lat, lon, currentDTO)
+                }
+            } catch (e: Exception) {
+                // Handle API call errors
+                Log.e("WeatherListFragment", "API call error: ${e.message}")
+            }
+        }
+    }
+
+    private fun showNotification(lat: String, lon: String, currentDTO: CurrentDTO) {
+        val notificationManager =
+            activity?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notificationContent =
+            "Latsss: $lat, Lon: $lon\nCity: ${currentDTO.name}\nTemperature: ${currentDTO.main?.temp}°C"
+
+        val notification = NotificationCompat.Builder(requireContext(), Constants.NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("Weather Details")
+            .setContentText(notificationContent)
+            .setSmallIcon(R.drawable.scater_clouds)
+            .build()
+
+        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
+    }
+
+
+    private fun calculateSpecificTime(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 2) // 1:00 AM
+        calendar.set(Calendar.MINUTE, 33)
+        calendar.set(Calendar.SECOND, 0)
+
+        val currentTime = LocalDateTime.now().toEpochSecond(java.time.ZoneOffset.UTC) * 1000
+
+        // If the current time is after 1:55 AM, schedule for the next day
+        if (currentTime > calendar.timeInMillis) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        return calendar.timeInMillis
+    }
+
+    private fun createNotificationChannel(){
+        val name = Constants.NOTIFICATION_CHANNEL_NAME
+        val desc = "A Description of the Channel"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel = NotificationChannel(Constants.NOTIFICATION_CHANNEL_ID, name, importance)
+        channel.description = desc
+        val notificationManager = activity?.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+    //ssssssssss
 
     private fun getLocation(latLonCallback: LatLonCallBack) {
         if (checkPermissions()) {
