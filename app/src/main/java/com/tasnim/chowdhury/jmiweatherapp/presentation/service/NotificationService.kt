@@ -1,4 +1,3 @@
-/*
 package com.tasnim.chowdhury.jmiweatherapp.presentation.service
 
 import android.app.NotificationChannel
@@ -11,21 +10,18 @@ import android.graphics.BitmapFactory
 import android.os.Binder
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.LifecycleService
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.tasnim.chowdhury.jmiweatherapp.R
 import com.tasnim.chowdhury.jmiweatherapp.presentation.MainActivity
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_CHANNEL_ID
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_CHANNEL_NAME
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_ID
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 class NotificationService : Service() {
 
     lateinit var notificationBuilder: NotificationCompat.Builder
     private lateinit var runnable: Runnable
+    lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     private var myBinder = MyBinder()
 
@@ -66,4 +62,4 @@ class NotificationService : Service() {
         notificationManager.createNotificationChannel(channel)
     }
 
-}*/
+}
