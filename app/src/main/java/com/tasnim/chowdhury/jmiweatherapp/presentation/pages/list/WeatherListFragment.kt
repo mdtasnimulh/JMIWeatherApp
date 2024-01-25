@@ -196,7 +196,7 @@ class WeatherListFragment : Fragment() {
 
         val currentDate = LocalDateTime.now()
         calendar.set(Calendar.YEAR, currentDate.year)
-        calendar.set(Calendar.MONTH, currentDate.monthValue - 1) // Calendar months are zero-based
+        calendar.set(Calendar.MONTH, currentDate.monthValue - 1)
         calendar.set(Calendar.DAY_OF_MONTH, currentDate.dayOfMonth)
 
         calendar.set(Calendar.HOUR_OF_DAY, 17)
