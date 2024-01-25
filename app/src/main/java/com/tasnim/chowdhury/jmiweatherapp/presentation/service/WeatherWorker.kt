@@ -1,4 +1,4 @@
-package com.tasnim.chowdhury.jmiweatherapp
+package com.tasnim.chowdhury.jmiweatherapp.presentation.service
 
 import android.app.NotificationManager
 import android.content.Context
@@ -8,6 +8,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
+import com.tasnim.chowdhury.jmiweatherapp.R
 import com.tasnim.chowdhury.jmiweatherapp.data.data_source.currentDTO.CurrentDTO
 import com.tasnim.chowdhury.jmiweatherapp.data.repository.WeatherRepository
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants

@@ -6,15 +6,11 @@ import android.content.Intent
 import android.util.Log
 import androidx.work.Constraints
 import androidx.work.Data
-import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.tasnim.chowdhury.jmiweatherapp.WeatherWorker
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.concurrent.TimeUnit
 
 const val titleExtra = "titleExtra"
 const val messageExtra = "messageExtra"
