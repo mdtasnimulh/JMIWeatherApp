@@ -1,10 +1,17 @@
 package com.tasnim.chowdhury.jmiweatherapp.presentation.pages.details
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -21,6 +28,24 @@ class WeatherDetailsFragment : Fragment() {
     private var map: GoogleMap? = null
     private val args by navArgs<WeatherDetailsFragmentArgs>()
 
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            var allGranted = true
+            for (isGranted in permissions.values) {
+                if (!isGranted){
+                    allGranted = false
+                    break
+                }
+            }
+
+            if (allGranted) {
+                Toast.makeText(requireContext(), "All Permissions Are Granted\nThank You.", Toast.LENGTH_SHORT).show()
+            } else {
+                requestANPermissions()
+                Toast.makeText(requireContext(), "Please Allow All Permission to use this app.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -34,6 +59,7 @@ class WeatherDetailsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.mapView.onCreate(savedInstanceState)
 
+        requestANPermissions()
         initView()
         setupData()
         setupClicks()
@@ -160,6 +186,47 @@ class WeatherDetailsFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         binding.mapView.onSaveInstanceState(outState)
+    }
+
+    private fun requestANPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissions: ArrayList<String> = arrayListOf(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+            val permissionsToRequest: ArrayList<String> = ArrayList()
+            for (permission in permissions) {
+                if (ContextCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(permission)
+                }
+            }
+            if (permissionsToRequest.isEmpty()) {
+                // all permissions are already granted
+            } else {
+                val permissionsArray: Array<String> = permissionsToRequest.toTypedArray()
+                var shouldShowRational = false
+                for (permission in permissionsArray) {
+                    if (shouldShowRequestPermissionRationale(permission)) {
+                        shouldShowRational = true
+                        break
+                    }
+                }
+                if (shouldShowRational) {
+                    val dialog = AlertDialog.Builder(requireContext())
+                        .setMessage("Please allow all permission, other wise this app will not work!")
+                        .setCancelable(false)
+                        .setPositiveButton("Yes") { _, _ ->
+                            requestPermissionLauncher.launch(permissionsArray)
+                        }
+                        .setNegativeButton("No") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                    dialog.create()
+                    dialog.show()
+                } else {
+                    requestPermissionLauncher.launch(permissionsArray)
+                }
+            }
+        }
     }
 
 }

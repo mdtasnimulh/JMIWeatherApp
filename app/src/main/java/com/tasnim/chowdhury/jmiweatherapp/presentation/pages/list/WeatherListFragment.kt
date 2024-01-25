@@ -170,36 +170,10 @@ class WeatherListFragment : Fragment() {
     }
 
     //sssssssss
-    private fun setupWorker() {
-        getLocation(object : LatLonCallBack {
-            override fun onLocationReceived(latitude: String, longitude: String) {
-                Log.d("chkGainLocation", "$latitude $longitude 1")
-                data = Data.Builder().putString("lat", lat).putString("lon", lon).build()
-
-                val constraints = Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .setRequiresBatteryNotLow(false)
-                    .build()
-
-                val periodicWorkRequest = PeriodicWorkRequestBuilder<WeatherWorker>(1, TimeUnit.MINUTES)
-                    .setInputData(data)
-                    .setConstraints(constraints)
-                    .build()
-
-                WorkManager.getInstance(requireContext()).enqueueUniquePeriodicWork(
-                    "weather_notification",
-                    ExistingPeriodicWorkPolicy.KEEP,
-                    periodicWorkRequest
-                )
-            }
-        })
-    }
-
     private fun scheduleIt() {
         getLocation(object : LatLonCallBack {
             @SuppressLint("ScheduleExactAlarm")
             override fun onLocationReceived(latitude: String, longitude: String) {
-                // Calculate delay until the next scheduled time
                 val specificTimeInMillis = calculateSpecificTime()
                 val delayMillis = specificTimeInMillis - System.currentTimeMillis()
 
@@ -216,7 +190,6 @@ class WeatherListFragment : Fragment() {
                         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                     )
 
-                    // Schedule the alarm with the calculated delay
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                         alarmManager.setExactAndAllowWhileIdle(
                             AlarmManager.RTC_WAKEUP,
@@ -235,47 +208,14 @@ class WeatherListFragment : Fragment() {
         })
     }
 
-    private fun fetchWeatherDataAndShowNotification(lat: String, lon: String) {
-        lifecycleScope.launch {
-            try {
-                // Collect the flow to get the actual data
-                val result = weatherViewModel.fetchCurrentWeatherData(lat, lon).firstOrNull()
-                result?.data?.let { currentDTO ->
-                    showNotification(lat, lon, currentDTO)
-                }
-            } catch (e: Exception) {
-                // Handle API call errors
-                Log.e("WeatherListFragment", "API call error: ${e.message}")
-            }
-        }
-    }
-
-    private fun showNotification(lat: String, lon: String, currentDTO: CurrentDTO) {
-        val notificationManager =
-            activity?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val notificationContent =
-            "Latsss: $lat, Lon: $lon\nCity: ${currentDTO.name}\nTemperature: ${currentDTO.main?.temp}°C"
-
-        val notification = NotificationCompat.Builder(requireContext(), Constants.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Weather Details")
-            .setContentText(notificationContent)
-            .setSmallIcon(R.drawable.scater_clouds)
-            .build()
-
-        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
-    }
-
-
     private fun calculateSpecificTime(): Long {
         val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, 2) // 1:00 AM
-        calendar.set(Calendar.MINUTE, 33)
+        calendar.set(Calendar.HOUR_OF_DAY, 16)
+        calendar.set(Calendar.MINUTE, 24)
         calendar.set(Calendar.SECOND, 0)
 
         val currentTime = LocalDateTime.now().toEpochSecond(java.time.ZoneOffset.UTC) * 1000
 
-        // If the current time is after 1:55 AM, schedule for the next day
         if (currentTime > calendar.timeInMillis) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
