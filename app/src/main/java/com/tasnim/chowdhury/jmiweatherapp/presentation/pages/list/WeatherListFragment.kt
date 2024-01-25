@@ -23,46 +23,29 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.work.Constraints
 import androidx.work.Data
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequest
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.tasnim.chowdhury.jmiweatherapp.R
-import com.tasnim.chowdhury.jmiweatherapp.WeatherWorker
-import com.tasnim.chowdhury.jmiweatherapp.data.data_source.currentDTO.CurrentDTO
 import com.tasnim.chowdhury.jmiweatherapp.databinding.FragmentWeatherListBinding
 import com.tasnim.chowdhury.jmiweatherapp.domain.model.WeatherModel
 import com.tasnim.chowdhury.jmiweatherapp.presentation.adapters.WeatherListAdapter
 import com.tasnim.chowdhury.jmiweatherapp.presentation.pages.list.viewModel.WeatherViewModel
 import com.tasnim.chowdhury.jmiweatherapp.presentation.service.Notification
-import com.tasnim.chowdhury.jmiweatherapp.presentation.service.messageExtra
-import com.tasnim.chowdhury.jmiweatherapp.presentation.service.titleExtra
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants
 import com.tasnim.chowdhury.jmiweatherapp.util.Constants.Companion.NOTIFICATION_ID
 import com.tasnim.chowdhury.jmiweatherapp.util.Status
 import com.tasnim.chowdhury.jmiweatherapp.util.LatLonCallBack
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Calendar
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -71,8 +54,6 @@ class WeatherListFragment : Fragment() {
     private lateinit var binding: FragmentWeatherListBinding
     private lateinit var weatherAdapter: WeatherListAdapter
     private val weatherViewModel: WeatherViewModel by viewModels()
-    private lateinit var request : OneTimeWorkRequest
-    private lateinit var periodicWorkRequest: PeriodicWorkRequest
     lateinit var data : Data
     private val permissionId = 2
     var lat = ""
@@ -91,8 +72,6 @@ class WeatherListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        //setupWorker()
 
         setupAdapter()
         setupObserver()
@@ -169,15 +148,16 @@ class WeatherListFragment : Fragment() {
         }
     }
 
-    //sssssssss
     private fun scheduleIt() {
+        Log.d("chkWorker", "True111")
         getLocation(object : LatLonCallBack {
             @SuppressLint("ScheduleExactAlarm")
             override fun onLocationReceived(latitude: String, longitude: String) {
+                Log.d("chkWorker", "True222")
                 val specificTimeInMillis = calculateSpecificTime()
-                val delayMillis = specificTimeInMillis - System.currentTimeMillis()
 
-                if (delayMillis > 0) {
+                if (specificTimeInMillis > 0) {
+                    Log.d("chkWorker", "${specificTimeInMillis}")
                     val alarmManager = activity?.getSystemService(Context.ALARM_SERVICE) as AlarmManager
                     val alarmIntent = Intent(activity?.applicationContext, Notification::class.java)
                     alarmIntent.putExtra("lat", latitude)
@@ -191,15 +171,18 @@ class WeatherListFragment : Fragment() {
                     )
 
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        Log.d("chkWorker", "True===")
+                        Log.d("chkWorker", "${specificTimeInMillis}+++")
                         alarmManager.setExactAndAllowWhileIdle(
                             AlarmManager.RTC_WAKEUP,
-                            System.currentTimeMillis() + delayMillis,
+                            specificTimeInMillis,
                             pendingIntent
                         )
                     } else {
+                        Log.d("chkWorker", "True---")
                         alarmManager.setExact(
                             AlarmManager.RTC_WAKEUP,
-                            System.currentTimeMillis() + delayMillis,
+                            specificTimeInMillis,
                             pendingIntent
                         )
                     }
@@ -210,11 +193,17 @@ class WeatherListFragment : Fragment() {
 
     private fun calculateSpecificTime(): Long {
         val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, 16)
-        calendar.set(Calendar.MINUTE, 24)
+
+        val currentDate = LocalDateTime.now()
+        calendar.set(Calendar.YEAR, currentDate.year)
+        calendar.set(Calendar.MONTH, currentDate.monthValue - 1) // Calendar months are zero-based
+        calendar.set(Calendar.DAY_OF_MONTH, currentDate.dayOfMonth)
+
+        calendar.set(Calendar.HOUR_OF_DAY, 17)
+        calendar.set(Calendar.MINUTE, 19)
         calendar.set(Calendar.SECOND, 0)
 
-        val currentTime = LocalDateTime.now().toEpochSecond(java.time.ZoneOffset.UTC) * 1000
+        val currentTime = System.currentTimeMillis()
 
         if (currentTime > calendar.timeInMillis) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
@@ -232,7 +221,6 @@ class WeatherListFragment : Fragment() {
         val notificationManager = activity?.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
-    //ssssssssss
 
     private fun getLocation(latLonCallback: LatLonCallBack) {
         if (checkPermissions()) {

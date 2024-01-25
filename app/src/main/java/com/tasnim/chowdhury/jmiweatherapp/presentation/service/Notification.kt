@@ -29,11 +29,6 @@ class Notification : BroadcastReceiver() {
             val lat = intent.getStringExtra("lat") ?: ""
             val lon = intent.getStringExtra("lon") ?: ""
 
-            val serviceIntent = Intent(context, NotificationService::class.java)
-            serviceIntent.putExtra("lat", lat)
-            serviceIntent.putExtra("lon", lon)
-            context.startService(serviceIntent)
-
             Log.d("chkWorker", "Worked")
             setupWorker(context, lat, lon)
         }
